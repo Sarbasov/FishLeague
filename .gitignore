@@ -1,0 +1,28 @@
+# IDE specific files
+.idea/
+.vscode/
+*.iml
+
+# Python cache and virtualenv
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+*.venv
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Environment files
+.env
+.env.local
+secrets.ini
