@@ -1,2 +1,3 @@
 ADMIN_GROUP_ID = -4617714875
 BOT_TOKEN = '7477173505:AAHKk5OYXSFyXIfa7fKdLRZxOEeCYmJZX_M'
+TOURNAMENT_WEBAPP_URL = 'https://sarbasov.github.io/tournament_webapp.html'

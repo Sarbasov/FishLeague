@@ -13,7 +13,7 @@ from datetime import datetime
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, ReplyKeyboardMarkup, KeyboardButton, \
     ReplyKeyboardRemove, ForceReply
 from aiogram.types import WebAppInfo
-from config import ADMIN_GROUP_ID, BOT_TOKEN
+from config import ADMIN_GROUP_ID, BOT_TOKEN, TOURNAMENT_WEBAPP_URL
 
 print("Starting bot")
 
@@ -208,7 +208,7 @@ async def handle_tournaments(message: types.Message):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
                 text="Open Tournament Manager",
-                web_app=WebAppInfo(url="https://sarbasov.github.io/tournament_webapp.html")
+                web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
             )
         ]])
     )
