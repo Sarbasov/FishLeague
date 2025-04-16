@@ -220,6 +220,8 @@ async def handle_webapp_data(update: types.Update):
     if not update.message or not update.message.web_app_data:
         return
 
+    print("Received WebApp data:", update.message.web_app_data)
+
     try:
         data = json.loads(update.web_app_data.data)
         user_id = update.web_app_data.user.id
