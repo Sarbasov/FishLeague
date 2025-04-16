@@ -289,13 +289,12 @@ async def handle_webapp_data(update: types.Update):
         except Exception as e:
             await bot.send_message(user_id, f"❌ Error: {str(e)}")
 
-async def is_admin(user_id: int) -> bool:
+async def is_member(user_id: int) -> bool:
     try:
         member = await bot.get_chat_member(ADMIN_GROUP_ID, user_id)
-        return member.status in ['administrator', 'creator']
+        return member is not None
     except:
         return False
-
 
 async def main():
     await dp.start_polling(bot)
