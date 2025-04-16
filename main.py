@@ -217,7 +217,7 @@ async def handle_tournaments(message: types.Message):
 # Add this handler to process WebApp data
 @dp.update()
 async def handle_webapp_data(update: types.Update):
-    if not update.web_app_data:
+    if not update.message or not update.message.web_app_data:
         return
 
     try:
@@ -284,7 +284,10 @@ async def handle_webapp_data(update: types.Update):
             )
 
     except Exception as e:
-        await bot.send_message(user_id, f"❌ Error: {str(e)}")
+        await bot.send_message(
+            chat_id=user_id,
+            text=json.dumps({'action': 'error', 'error': str(e)})
+        )
 
 async def is_admin(user_id: int) -> bool:
     try:
