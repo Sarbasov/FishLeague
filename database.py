@@ -17,6 +17,8 @@ class User(BaseModel):
     # Telegram user ID (not auto-incrementing)
     id = BigIntegerField(primary_key=True)
 
+    chat_id = BigIntegerField()  # Store chat_id where bot can message them
+
     # Telegram username (e.g., @john_doe)
     username = CharField(max_length=100, null=True)
 

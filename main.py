@@ -34,6 +34,14 @@ async def start(message: Message, state: FSMContext):
     try:
         user = User.get(User.id == message.from_user.id)
 
+        # Update chat_id and username of the user to keep these values up-to-date
+        User.update(
+            chat_id = message.chat.id,
+            username = message.from_user.username
+        ).where(
+            User.id == message.from_user.id
+        ).execute()
+
         if user.status == UserStatus.ACTIVATED:
             await message.answer("✅ Welcome back! You have full access.")
         elif user.status == UserStatus.BLOCKED:
@@ -52,31 +60,30 @@ async def start(message: Message, state: FSMContext):
                 one_time_keyboard=True
             )
         )
+        await state.update_data(user_id=message.from_user.id)
         await state.set_state(Registration.waiting_for_phone)
 
 
 @dp.message(Registration.waiting_for_phone, F.contact)
 async def process_phone(message: Message, state: FSMContext):
     await state.update_data(phone_number=message.contact.phone_number)
-    default_name = message.from_user.full_name or "Unknown User"
 
     await message.answer(
-        f"👤 Please confirm your full name (default: {default_name}):",
+        f"👤 Please enter your full name:",
         reply_markup=ReplyKeyboardMarkup(
             keyboard=[
-                [KeyboardButton(text=f"✅ Use {default_name}")]
+                [KeyboardButton(text=f"✅ Use {message.from_user.full_name}")]
             ],
             resize_keyboard=True
         )
     )
-    await state.update_data(default_name=default_name)
     await state.set_state(Registration.waiting_for_full_name)
 
 
 @dp.message(Registration.waiting_for_full_name)
 async def process_full_name(message: Message, state: FSMContext):
     data = await state.get_data()
-    full_name = data['default_name'] if message.text.startswith("✅ Use") else message.text
+    full_name = message.text
 
     if len(full_name) > 50:
         await message.answer("❌ Name too long (max 50 chars). Try again:")
@@ -89,19 +96,24 @@ async def process_full_name(message: Message, state: FSMContext):
 
 @dp.message(Registration.waiting_for_comment)
 async def process_comment(message: Message, state: FSMContext):
+    comment = message.text
+    await state.update_data(comment=comment)
+
     data = await state.get_data()
 
     try:
         User.create(
             id=message.from_user.id,
+            chat_id=message.chat.id,
             username=message.from_user.username,
             full_name=data['full_name'],
             phone_number=data['phone_number'],
             url=message.from_user.url,
-            comment=message.text,
+            comment=comment,
             status=UserStatus.REQUESTED,
             create_date=datetime.now()
         )
+        await notify_admins(data)
         await message.answer("✅ Registration submitted for approval!")
     except DatabaseError as e:
         error_message = str(e)
@@ -116,6 +128,71 @@ async def process_comment(message: Message, state: FSMContext):
         #logger.error(f"Registration error for {message.from_user.id}: {error_message}")
 
     await state.clear()
+
+
+# In your registration handler:
+async def notify_admins(user_data: dict):
+    admin_chat_id = -4617714875  # group ID of admin group FishingLeagueAdmins
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="✅ Approve",
+                callback_data=f"approve_{user_data['user_id']}"
+            ),
+            InlineKeyboardButton(
+                text="❌ Deny",
+                callback_data=f"deny_{user_data['user_id']}"
+            ),
+            InlineKeyboardButton(
+                text="🗑️ Delete Request",
+                callback_data=f"delete_{user_data['user_id']}")
+        ]
+    ])
+
+    await bot.send_message(
+        chat_id=admin_chat_id,
+        text=f"📨 New Registration Request:\n"
+             f"• User: {user_data['full_name']} (ID: {user_data['user_id']})\n"
+             f"• Phone: {user_data['phone_number']}\n"
+             f"• Comment: {user_data['comment']}",
+        reply_markup=markup
+    )
+
+@dp.callback_query(F.data.startswith("approve_"))
+async def approve_user(callback: types.CallbackQuery):
+    user_id = int(callback.data.split("_")[1])
+
+    User.update(status=UserStatus.ACTIVATED).where(User.id == user_id).execute()
+    await bot.send_message(user_id, "🎉 Your registration was approved!")
+
+    await callback.answer(
+        f"✅ Approved by {callback.from_user.full_name}"
+    )
+
+@dp.callback_query(F.data.startswith("deny_"))
+async def deny_user(callback: types.CallbackQuery):
+    user_id = int(callback.data.split("_")[1])
+
+    User.update(status=UserStatus.BLOCKED).where(User.id == user_id).execute()
+    await bot.send_message(user_id, "❌ Your registration was denied.")
+
+    # Edit original message to show denial
+    await callback.answer(
+        f"❌ Denied by {callback.from_user.full_name}"
+    )
+
+@dp.callback_query(F.data.startswith("delete_"))
+async def delete_request(callback: types.CallbackQuery):
+    user_id = int(callback.data.split("_")[1])
+
+    # full DB delete
+    User.delete().where(User.id == user_id).execute()
+
+    # Delete the admin notification message
+    await callback.message.delete()
+
+    await callback.answer("Request deleted by {callback.from_user.full_name}")
 
 async def main():
     await dp.start_polling(bot)
