@@ -208,7 +208,7 @@ async def handle_tournaments(message: types.Message):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
                 text="Open Tournament Manager",
-                web_app=WebAppInfo(url="YOUR_WEBAPP_URL")  # Replace with your actual URL
+                web_app=WebAppInfo(url="https://sarbasov.github.io/tournament_webapp.html")
             )
         ]])
     )
