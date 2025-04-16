@@ -205,7 +205,7 @@ async def handle_tournaments(message: types.Message):
 
     # tg.sendData does not work in InlineKeyboardMarkup, so using ReplyKeyboardMarkup
     await message.answer(
-        "Tournament",
+        "Tournaments:",
         reply_markup=ReplyKeyboardMarkup(keyboard=[[
             KeyboardButton(
                 text="Create Tournament",
