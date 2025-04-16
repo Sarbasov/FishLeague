@@ -203,10 +203,11 @@ async def handle_tournaments(message: types.Message):
         await message.answer("❌ Admin access required")
         return
 
+    # tg.sendData does not work in InlineKeyboardMarkup, so using ReplyKeyboardMarkup
     await message.answer(
         "Tournament Management",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(
+        reply_markup=ReplyKeyboardMarkup(keyboard=[[
+            KeyboardButton(
                 text="Open Tournament Manager",
                 web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
             )
