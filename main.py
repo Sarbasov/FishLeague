@@ -214,20 +214,16 @@ async def handle_tournaments(message: types.Message):
         ]])
     )
 
-# Add this handler to process WebApp data
-@dp.update()
-async def handle_webapp_data(update: types.Update):
-    if not update.message or not update.message.web_app_data:
-        return
-
-    print("Received WebApp data:", update.message.web_app_data)
+@dp.message(F.web_app_data)
+async def handle_webapp_data(message: types.Message):
+    print("Received WebApp data:", message.web_app_data)
 
     try:
-        data = json.loads(update.web_app_data.data)
-        user_id = update.web_app_data.user.id
+        data = json.loads(message.web_app_data.data)
+        user_id = message.from_user.id
 
         if not await is_admin(user_id):
-            return await bot.send_message(user_id, "❌ Admin access required")
+            return await message.answer("❌ Admin access required")
 
         if data['action'] == 'create_tournament':
             # Create new tournament
@@ -247,7 +243,7 @@ async def handle_webapp_data(update: types.Update):
                 created_by=user_id,
                 status=TournamentStatus.SCHEDULED
             )
-            await bot.send_message(user_id, "✅ Tournament created successfully!")
+            await message.answer("✅ Tournament created successfully!")
 
         elif data['action'] == 'update_tournament':
             # Update existing tournament
@@ -265,12 +261,12 @@ async def handle_webapp_data(update: types.Update):
                 competition_type=data['data']['competition_type'],
                 comment=data['data']['comment']
             ).where(Tournament.id == data['data']['id']).execute()
-            await bot.send_message(user_id, "✅ Tournament updated successfully!")
+            await message.answer("✅ Tournament updated successfully!")
 
     except Exception as e:
-        await bot.send_message(
-            chat_id=user_id,
-            text=json.dumps({'action': 'error', 'error': str(e)})
+        print(f"Error processing web app data: {e}")
+        await message.answer(
+            text=f"⚠️ Error processing your request: {str(e)}"
         )
 
 async def is_admin(user_id: int) -> bool:
