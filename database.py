@@ -49,6 +49,8 @@ class User(BaseModel):
 
 
 class Tournament(BaseModel):
+    id = AutoField()  # Auto-incrementing primary key
+
     # Basic info
     event_name = CharField(max_length=100)
     event_datetime = DateTimeField()
@@ -112,6 +114,22 @@ class Tournament(BaseModel):
     # Metadata
     created_at = DateTimeField(default=datetime.datetime.now)
     created_by = ForeignKeyField(User, backref='tournaments')
+
+    @classmethod
+    def get_default_sectors(cls, team_count: int) -> int:
+        return max(1, team_count // 2)
+
+    @classmethod
+    def get_default_rounds(cls) -> int:
+        return 10
+
+    @classmethod
+    def get_default_playoff_stage(cls) -> str:
+        return '1/8'
+
+    @classmethod
+    def get_default_players(cls, players_per_game: int) -> int:
+        return players_per_game + 1
 
 # Connect and create tables
 def initialize_db():
