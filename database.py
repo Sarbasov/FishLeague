@@ -8,6 +8,13 @@ class BaseModel(Model):
     class Meta:
         database = db
 
+class TournamentStatus:
+    DELETED = -1
+    SCHEDULED = 0
+    ENROLLMENT_COMPLETE = 1
+    IN_PROGRESS = 2
+    COMPLETED = 3
+
 class UserStatus:
     REQUESTED = 0
     ACTIVATED = 1
@@ -89,6 +96,18 @@ class Tournament(BaseModel):
 
     # Additional info
     comment = TextField(null=True)  # Unlimited length
+
+    # Status tracking
+    status = IntegerField(
+        choices=[
+            (TournamentStatus.DELETED, 'Deleted'),
+            (TournamentStatus.SCHEDULED, 'Scheduled'),
+            (TournamentStatus.ENROLLMENT_COMPLETE, 'Enrollment Complete'),
+            (TournamentStatus.IN_PROGRESS, 'In Progress'),
+            (TournamentStatus.COMPLETED, 'Completed')
+        ],
+        default=TournamentStatus.SCHEDULED
+    )
 
     # Metadata
     created_at = DateTimeField(default=datetime.datetime.now)
