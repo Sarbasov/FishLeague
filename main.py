@@ -205,15 +205,14 @@ async def handle_tournaments(message: types.Message):
 
     # tg.sendData does not work in InlineKeyboardMarkup, so using ReplyKeyboardMarkup
     await message.answer(
-        "Tournament Management",
+        "Tournament",
         reply_markup=ReplyKeyboardMarkup(keyboard=[[
             KeyboardButton(
-                text="Open Tournament Manager",
+                text="Create Tournament",
                 web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
             )
         ]])
     )
-
 
 # Add this handler to process WebApp data
 @dp.update()
@@ -249,10 +248,6 @@ async def handle_webapp_data(update: types.Update):
                 status=TournamentStatus.SCHEDULED
             )
             await bot.send_message(user_id, "✅ Tournament created successfully!")
-            await bot.send_message(
-                chat_id=user_id,
-                text=json.dumps({'action': 'reload'})  # Tell WebApp to refresh
-            )
 
         elif data['action'] == 'update_tournament':
             # Update existing tournament
@@ -271,20 +266,6 @@ async def handle_webapp_data(update: types.Update):
                 comment=data['data']['comment']
             ).where(Tournament.id == data['data']['id']).execute()
             await bot.send_message(user_id, "✅ Tournament updated successfully!")
-            await bot.send_message(
-                chat_id=user_id,
-                text=json.dumps({'action': 'reload'})  # Tell WebApp to refresh
-            )
-
-        elif data['action'] == 'delete_tournament':
-            Tournament.update(status=TournamentStatus.DELETED).where(
-                Tournament.id == data['id']
-            ).execute()
-            await bot.send_message(user_id, "✅ Tournament deleted!")
-            await bot.send_message(
-                chat_id=user_id,
-                text=json.dumps({'action': 'reload'})  # Tell WebApp to refresh
-            )
 
     except Exception as e:
         await bot.send_message(
