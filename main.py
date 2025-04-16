@@ -197,10 +197,8 @@ async def delete_request(callback: types.CallbackQuery):
     await callback.answer("Request deleted by {callback.from_user.full_name}")
 
 
-# Add to command handlers
 @dp.message(Command("tournaments"))
 async def handle_tournaments(message: types.Message):
-    # Verify admin status (replace with your admin check logic)
     if not await is_admin(message.from_user.id):
         await message.answer("❌ Admin access required")
         return
@@ -210,86 +208,85 @@ async def handle_tournaments(message: types.Message):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
                 text="Open Tournament Manager",
-                web_app=WebAppInfo(url="https://sarbasov.github.io/tournament_webapp.html")
-            )]]
-        )
+                web_app=WebAppInfo(url="YOUR_WEBAPP_URL")  # Replace with your actual URL
+            )
+        ]])
     )
 
-# Add to your Dispatcher setup
+
+# Add this handler to process WebApp data
 @dp.update()
 async def handle_webapp_data(update: types.Update):
-    if update.web_app_data:
-        try:
-            user_id = update.web_app_data.user.id
-            data = json.loads(update.web_app_data.data)
+    if not update.web_app_data:
+        return
 
-            if not await is_admin(user_id):
-                return
+    try:
+        data = json.loads(update.web_app_data.data)
+        user_id = update.web_app_data.user.id
 
-            if data['action'] == 'list_tournaments':
-                tournaments = list(Tournament.select().dicts())
-                await bot.send_message(
-                    chat_id=user_id,
-                    text=json.dumps({
-                        'action': 'display_tournaments',
-                        'tournaments': [
-                            {
-                                'id': t['id'],
-                                'event_name': t['event_name'],
-                                'event_datetime': t['event_datetime'].isoformat(),
-                                'status': t['status']
-                            } for t in tournaments
-                        ]
-                    }),
-                    reply_markup=ForceReply(selective=True)
-                )
+        if not await is_admin(user_id):
+            return await bot.send_message(user_id, "❌ Admin access required")
 
-            elif data['action'] == 'create_tournament':
-                Tournament.create(
-                    event_name=data['data']['event_name'],
-                    event_datetime=datetime.fromisoformat(data['data']['event_datetime']),
-                    location_name=data['data']['location_name'],
-                    number_of_teams=data['data']['number_of_teams'],
-                    number_of_sectors=data['data']['number_of_sectors'],
-                    players_per_game=data['data']['players_per_game'],
-                    players_registered=data['data']['players_registered'],
-                    round_robin_rounds=data['data']['round_robin_rounds'],
-                    playoff_starts_at=data['data']['playoff_starts_at'],
-                    playoff_seeding=data['data']['playoff_seeding'],
-                    competition_type=data['data']['competition_type'],
-                    comment=data['data']['comment'],
-                    created_by=user_id,
-                    status=TournamentStatus.SCHEDULED
-                )
-                await bot.send_message(user_id, "✅ Tournament created!")
+        if data['action'] == 'create_tournament':
+            # Create new tournament
+            Tournament.create(
+                event_name=data['data']['event_name'],
+                event_datetime=datetime.fromisoformat(data['data']['event_datetime']),
+                location_name=data['data']['location_name'],
+                number_of_teams=data['data']['number_of_teams'],
+                number_of_sectors=data['data']['number_of_sectors'],
+                players_per_game=data['data']['players_per_game'],
+                players_registered=data['data']['players_registered'],
+                round_robin_rounds=data['data']['round_robin_rounds'],
+                playoff_starts_at=data['data']['playoff_starts_at'],
+                playoff_seeding=data['data']['playoff_seeding'],
+                competition_type=data['data']['competition_type'],
+                comment=data['data']['comment'],
+                created_by=user_id,
+                status=TournamentStatus.SCHEDULED
+            )
+            await bot.send_message(user_id, "✅ Tournament created successfully!")
+            await bot.send_message(
+                chat_id=user_id,
+                text=json.dumps({'action': 'reload'})  # Tell WebApp to refresh
+            )
 
-            elif data['action'] == 'update_tournament':
-                Tournament.update(
-                    event_name=data['data']['event_name'],
-                    event_datetime=datetime.fromisoformat(data['data']['event_datetime']),
-                    location_name=data['data']['location_name'],
-                    number_of_teams=data['data']['number_of_teams'],
-                    number_of_sectors=data['data']['number_of_sectors'],
-                    players_per_game=data['data']['players_per_game'],
-                    players_registered=data['data']['players_registered'],
-                    round_robin_rounds=data['data']['round_robin_rounds'],
-                    playoff_starts_at=data['data']['playoff_starts_at'],
-                    playoff_seeding=data['data']['playoff_seeding'],
-                    competition_type=data['data']['competition_type'],
-                    comment=data['data']['comment']
-                ).where(Tournament.id == data['data']['id']).execute()
-                await bot.send_message(user_id, "✅ Tournament updated!")
+        elif data['action'] == 'update_tournament':
+            # Update existing tournament
+            Tournament.update(
+                event_name=data['data']['event_name'],
+                event_datetime=datetime.fromisoformat(data['data']['event_datetime']),
+                location_name=data['data']['location_name'],
+                number_of_teams=data['data']['number_of_teams'],
+                number_of_sectors=data['data']['number_of_sectors'],
+                players_per_game=data['data']['players_per_game'],
+                players_registered=data['data']['players_registered'],
+                round_robin_rounds=data['data']['round_robin_rounds'],
+                playoff_starts_at=data['data']['playoff_starts_at'],
+                playoff_seeding=data['data']['playoff_seeding'],
+                competition_type=data['data']['competition_type'],
+                comment=data['data']['comment']
+            ).where(Tournament.id == data['data']['id']).execute()
+            await bot.send_message(user_id, "✅ Tournament updated successfully!")
+            await bot.send_message(
+                chat_id=user_id,
+                text=json.dumps({'action': 'reload'})  # Tell WebApp to refresh
+            )
 
-            elif data['action'] == 'delete_tournament':
-                Tournament.update(status=TournamentStatus.DELETED).where(
-                    Tournament.id == data['id']
-                ).execute()
-                await bot.send_message(user_id, "✅ Tournament marked as deleted!")
+        elif data['action'] == 'delete_tournament':
+            Tournament.update(status=TournamentStatus.DELETED).where(
+                Tournament.id == data['id']
+            ).execute()
+            await bot.send_message(user_id, "✅ Tournament deleted!")
+            await bot.send_message(
+                chat_id=user_id,
+                text=json.dumps({'action': 'reload'})  # Tell WebApp to refresh
+            )
 
-        except Exception as e:
-            await bot.send_message(user_id, f"❌ Error: {str(e)}")
+    except Exception as e:
+        await bot.send_message(user_id, f"❌ Error: {str(e)}")
 
-async def is_member(user_id: int) -> bool:
+async def is_admin(user_id: int) -> bool:
     try:
         member = await bot.get_chat_member(ADMIN_GROUP_ID, user_id)
         return member is not None
