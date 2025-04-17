@@ -142,15 +142,15 @@ async def notify_admins(user_data: dict):
         [
             InlineKeyboardButton(
                 text="✅ Approve",
-                callback_data=f"approve_{user_data['user_id']}"
+                callback_data=f"approve_user_{user_data['user_id']}"
             ),
             InlineKeyboardButton(
                 text="❌ Deny",
-                callback_data=f"deny_{user_data['user_id']}"
+                callback_data=f"deny_user_{user_data['user_id']}"
             ),
             InlineKeyboardButton(
                 text="🗑️ Delete Request",
-                callback_data=f"delete_{user_data['user_id']}")
+                callback_data=f"delete_user_{user_data['user_id']}")
         ]
     ])
 
@@ -163,10 +163,10 @@ async def notify_admins(user_data: dict):
         reply_markup=markup
     )
 
-@dp.callback_query(F.data.startswith("approve_"))
+@dp.callback_query(F.data.startswith("approve_user_"))
 async def approve_user(callback: types.CallbackQuery):
     print(f"🔹 approve_user() | User: {callback.from_user.id} | Data: {callback.data}")
-    user_id = int(callback.data.split("_")[1])
+    user_id = int(callback.data.split("_")[2])
 
     User.update(status=UserStatus.ACTIVATED).where(User.id == user_id).execute()
     await bot.send_message(user_id, "🎉 Your registration was approved!")
@@ -175,10 +175,10 @@ async def approve_user(callback: types.CallbackQuery):
         f"✅ Approved by {callback.from_user.full_name}"
     )
 
-@dp.callback_query(F.data.startswith("deny_"))
+@dp.callback_query(F.data.startswith("deny_user_"))
 async def deny_user(callback: types.CallbackQuery):
     print(f"🔹 deny_user() | User: {callback.from_user.id} | Data: {callback.data}")
-    user_id = int(callback.data.split("_")[1])
+    user_id = int(callback.data.split("_")[2])
 
     User.update(status=UserStatus.BLOCKED).where(User.id == user_id).execute()
     await bot.send_message(user_id, "❌ Your registration was denied.")
@@ -188,10 +188,10 @@ async def deny_user(callback: types.CallbackQuery):
         f"❌ Denied by {callback.from_user.full_name}"
     )
 
-@dp.callback_query(F.data.startswith("delete_"))
+@dp.callback_query(F.data.startswith("delete_user_"))
 async def delete_request(callback: types.CallbackQuery):
     print(f"🔹 delete_request() | User: {callback.from_user.id} | Data: {callback.data}")
-    user_id = int(callback.data.split("_")[1])
+    user_id = int(callback.data.split("_")[2])
 
     # full DB delete
     User.delete().where(User.id == user_id).execute()
@@ -241,6 +241,7 @@ async def handle_tournaments(message: types.Message):
     )
 
     await message.answer(
+        "Press ➕ Create New Tournament to create a new tournament",
         reply_markup=ReplyKeyboardMarkup(keyboard=[[
             KeyboardButton(
                 text="➕ Create New Tournament",
@@ -350,43 +351,6 @@ async def refresh_tournaments(callback: types.CallbackQuery):
     # Re-run the handle_tournaments function
     await handle_tournaments(callback.message)
     await callback.answer()
-
-
-@dp.message(Command("get_tournament"))
-async def get_tournament(message: types.Message):
-    if not await is_admin(message.from_user.id):
-        await message.answer("❌ Admin access required")
-        return
-
-    try:
-        tournament_id = int(message.text.split()[1])
-        tournament = Tournament.get_by_id(tournament_id)
-
-        # Convert datetime to ISO format for the web app
-        event_datetime = tournament.event_datetime.isoformat()
-
-        tournament_data = {
-            "id": tournament.id,
-            "event_name": tournament.event_name,
-            "event_datetime": event_datetime,
-            "location_name": tournament.location_name,
-            "number_of_teams": tournament.number_of_teams,
-            "number_of_sectors": tournament.number_of_sectors,
-            "players_per_game": tournament.players_per_game,
-            "players_registered": tournament.players_registered,
-            "round_robin_rounds": tournament.round_robin_rounds,
-            "playoff_starts_at": tournament.playoff_starts_at,
-            "playoff_seeding": tournament.playoff_seeding,
-            "competition_type": tournament.competition_type,
-            "comment": tournament.comment,
-            "status": tournament.status
-        }
-
-        await message.answer(json.dumps(tournament_data))
-    except (IndexError, ValueError):
-        await message.answer("Usage: /get_tournament <tournament_id>")
-    except DoesNotExist:
-        await message.answer("Tournament not found")
 
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: types.Message):
