@@ -43,16 +43,19 @@ class UserHandlers:
 
     async def start(self, message: types.Message, state: FSMContext):
         try:
-            user = await UserService.get_user(message.from_user.id)
-            if user:
-                if user.status == UserStatus.ACTIVATED:
-                    await message.answer("✅ Welcome back! You have full access.")
-                elif user.status == UserStatus.BLOCKED:
-                    await message.answer("⛔ Your account is blocked. Contact administrator.")
-                else:
-                    await message.answer("⌛ Your registration request is pending approval.")
+            if await is_admin(self.bot, message.from_user.id):
+                await message.answer("✅ Welcome back! You are an admin.")
             else:
-                await self._init_registration(message, state)
+                user = await UserService.get_user(message.from_user.id)
+                if user:
+                    if user.status == UserStatus.ACTIVATED:
+                        await message.answer("✅ Welcome back! You have full access.")
+                    elif user.status == UserStatus.BLOCKED:
+                        await message.answer("⛔ Your account is blocked. Contact administrator.")
+                    else:
+                        await message.answer("⌛ Your registration request is pending approval.")
+                else:
+                    await self._init_registration(message, state)
         except Exception as e:
             await message.answer("⚠️ An error occurred. Please try again.")
             print(f"Error in start handler: {e}")
