@@ -255,9 +255,13 @@ async def handle_tournaments(message: types.Message):
 
     await message.answer(
         "🏆 Tournament List:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard)
+        reply_markup=ReplyKeyboardMarkup(keyboard=[[
+            KeyboardButton(
+                text="Open Tournament Manager",
+                web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
+            )
+        ]])
     )
-
 
 # Add handlers for the new callback queries
 @dp.callback_query(F.data.startswith("view_tournament_"))
