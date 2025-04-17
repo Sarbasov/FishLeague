@@ -7,7 +7,7 @@ from aiogram.types import WebAppInfo
 from peewee import DoesNotExist
 
 from bot.services.tournament_service import TournamentService
-from config import TOURNAMENT_WEBAPP_URL, ADMIN_GROUP_ID
+from config import TOURNAMENT_WEBAPP_URL
 from urllib.parse import quote
 import json
 
