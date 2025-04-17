@@ -1,5 +1,7 @@
 import asyncio
 import json
+import urllib
+from urllib.parse import quote
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
@@ -203,16 +205,198 @@ async def handle_tournaments(message: types.Message):
         await message.answer("❌ Admin access required")
         return
 
-    # tg.sendData does not work in InlineKeyboardMarkup, so using ReplyKeyboardMarkup
-    await message.answer(
-        "Tournaments:",
-        reply_markup=ReplyKeyboardMarkup(keyboard=[[
-            KeyboardButton(
-                text="Create Tournament",
-                web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
+    # Get all tournaments from the database
+    tournaments = Tournament.select().order_by(Tournament.event_datetime.desc())
+
+    if not tournaments:
+        # If no tournaments, show create button
+        await message.answer(
+            "No tournaments found. Would you like to create one?",
+            reply_markup=ReplyKeyboardMarkup(keyboard=[[
+                KeyboardButton(
+                    text="Create Tournament",
+                    web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
+                )
+            ]])
+        )
+        return
+
+    # Create inline keyboard with tournament list
+    keyboard = []
+    for tournament in tournaments:
+        # Format date for display
+        event_date = tournament.event_datetime.strftime("%Y-%m-%d %H:%M")
+
+        # Create buttons for each tournament
+        keyboard.append([
+            InlineKeyboardButton(
+                text=f"{tournament.event_name} ({event_date})",
+                callback_data=f"view_tournament_{tournament.id}"
             )
-        ]])
+        ])
+        keyboard.append([
+            InlineKeyboardButton(
+                text="✏️ Edit",
+                callback_data=f"edit_tournament_{tournament.id}"
+            ),
+            InlineKeyboardButton(
+                text="🗑️ Delete",
+                callback_data=f"delete_tournament_{tournament.id}"
+            ),
+            InlineKeyboardButton(
+                text="🔍 Details",
+                callback_data=f"details_tournament_{tournament.id}"
+            )
+        ])
+
+    # Add create button at the end
+    keyboard.append([
+        InlineKeyboardButton(
+            text="➕ Create New Tournament",
+            web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
+        )
+    ])
+
+    await message.answer(
+        "🏆 Tournament List:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard)
     )
+
+
+# Add handlers for the new callback queries
+@dp.callback_query(F.data.startswith("view_tournament_"))
+async def view_tournament(callback: types.CallbackQuery):
+    tournament_id = int(callback.data.split("_")[2])
+    try:
+        tournament = Tournament.get_by_id(tournament_id)
+        event_date = tournament.event_datetime.strftime("%Y-%m-%d %H:%M")
+
+        text = (
+            f"🏆 <b>{tournament.event_name}</b>\n"
+            f"📅 <b>Date:</b> {event_date}\n"
+            f"📍 <b>Location:</b> {tournament.location_name}\n"
+            f"👥 <b>Teams:</b> {tournament.number_of_teams}\n"
+            f"⚽ <b>Players per game:</b> {tournament.players_per_game}\n"
+            f"🏟️ <b>Sectors:</b> {tournament.number_of_sectors}\n"
+            f"🔄 <b>Round Robin Rounds:</b> {tournament.round_robin_rounds}\n"
+            f"🏁 <b>Playoff Starts:</b> {tournament.playoff_starts_at}\n"
+            f"📝 <b>Comment:</b> {tournament.comment or 'None'}"
+        )
+
+        await callback.message.answer(text)
+        await callback.answer()
+    except DoesNotExist:
+        await callback.answer("Tournament not found", show_alert=True)
+
+
+@dp.callback_query(F.data.startswith("edit_tournament_"))
+async def edit_tournament(callback: types.CallbackQuery):
+    tournament_id = int(callback.data.split("_")[2])
+    try:
+        tournament = Tournament.get_by_id(tournament_id)
+
+        # Prepare tournament data
+        tournament_data = {
+            "id": tournament.id,
+            "event_name": tournament.event_name,
+            "event_datetime": tournament.event_datetime.isoformat(),
+            "location_name": tournament.location_name,
+            "number_of_teams": tournament.number_of_teams,
+            "number_of_sectors": tournament.number_of_sectors,
+            "players_per_game": tournament.players_per_game,
+            "players_registered": tournament.players_registered,
+            "round_robin_rounds": tournament.round_robin_rounds,
+            "playoff_starts_at": tournament.playoff_starts_at,
+            "playoff_seeding": tournament.playoff_seeding,
+            "competition_type": tournament.competition_type,
+            "comment": tournament.comment or ""
+        }
+
+        # Encode data as URL-safe JSON string
+        encoded_data = quote(json.dumps(tournament_data))
+        web_app_url = f"{TOURNAMENT_WEBAPP_URL}?edit={encoded_data}"
+
+        await callback.message.answer(
+            "Editing tournament...",
+            reply_markup=ReplyKeyboardMarkup(keyboard=[[
+                KeyboardButton(
+                    text="✏️ Edit Tournament",
+                    web_app=WebAppInfo(url=web_app_url)
+                )
+            ]], resize_keyboard=True)
+        )
+        await callback.answer()
+    except DoesNotExist:
+        await callback.answer("Tournament not found", show_alert=True)
+    except Exception as e:
+        print(f"Error in edit_tournament: {e}")
+        await callback.answer("Error loading tournament", show_alert=True)
+
+@dp.callback_query(F.data.startswith("delete_tournament_"))
+async def delete_tournament(callback: types.CallbackQuery):
+    tournament_id = int(callback.data.split("_")[2])
+    try:
+        tournament = Tournament.get_by_id(tournament_id)
+        tournament.delete_instance()
+
+        # Edit original message to remove the deleted tournament
+        await callback.message.edit_reply_markup(
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="✅ Tournament deleted. Click to refresh",
+                        callback_data="refresh_tournaments"
+                    )]
+                ]
+            )
+        )
+        await callback.answer("Tournament deleted")
+    except DoesNotExist:
+        await callback.answer("Tournament not found", show_alert=True)
+
+
+@dp.callback_query(F.data == "refresh_tournaments")
+async def refresh_tournaments(callback: types.CallbackQuery):
+    # Re-run the handle_tournaments function
+    await handle_tournaments(callback.message)
+    await callback.answer()
+
+
+@dp.message(Command("get_tournament"))
+async def get_tournament(message: types.Message):
+    if not await is_admin(message.from_user.id):
+        await message.answer("❌ Admin access required")
+        return
+
+    try:
+        tournament_id = int(message.text.split()[1])
+        tournament = Tournament.get_by_id(tournament_id)
+
+        # Convert datetime to ISO format for the web app
+        event_datetime = tournament.event_datetime.isoformat()
+
+        tournament_data = {
+            "id": tournament.id,
+            "event_name": tournament.event_name,
+            "event_datetime": event_datetime,
+            "location_name": tournament.location_name,
+            "number_of_teams": tournament.number_of_teams,
+            "number_of_sectors": tournament.number_of_sectors,
+            "players_per_game": tournament.players_per_game,
+            "players_registered": tournament.players_registered,
+            "round_robin_rounds": tournament.round_robin_rounds,
+            "playoff_starts_at": tournament.playoff_starts_at,
+            "playoff_seeding": tournament.playoff_seeding,
+            "competition_type": tournament.competition_type,
+            "comment": tournament.comment,
+            "status": tournament.status
+        }
+
+        await message.answer(json.dumps(tournament_data))
+    except (IndexError, ValueError):
+        await message.answer("Usage: /get_tournament <tournament_id>")
+    except DoesNotExist:
+        await message.answer("Tournament not found")
 
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: types.Message):
@@ -263,6 +447,35 @@ async def handle_webapp_data(message: types.Message):
             ).where(Tournament.id == data['data']['id']).execute()
             await message.answer("✅ Tournament updated successfully!")
 
+        elif data['action'] == 'get_tournament':
+            # New handler for fetching tournament data
+            tournament_id = data['tournament_id']
+            tournament = Tournament.get_by_id(tournament_id)
+
+            # Format datetime for the web app
+            event_datetime = tournament.event_datetime.isoformat()
+
+            tournament_data = {
+                "id": tournament.id,
+                "event_name": tournament.event_name,
+                "event_datetime": event_datetime,
+                "location_name": tournament.location_name,
+                "number_of_teams": tournament.number_of_teams,
+                "number_of_sectors": tournament.number_of_sectors,
+                "players_per_game": tournament.players_per_game,
+                "players_registered": tournament.players_registered,
+                "round_robin_rounds": tournament.round_robin_rounds,
+                "playoff_starts_at": tournament.playoff_starts_at,
+                "playoff_seeding": tournament.playoff_seeding,
+                "competition_type": tournament.competition_type,
+                "comment": tournament.comment,
+                "status": tournament.status
+            }
+
+            await message.answer(json.dumps({
+                "type": "tournament_data",
+                "data": tournament_data
+            }))
     except Exception as e:
         print(f"Error processing web app data: {e}")
         await message.answer(
