@@ -37,14 +37,11 @@ class TournamentHandlers:
         self.dp.message(F.web_app_data)(self.handle_webapp_data)
 
     async def handle_tournaments(self, message: types.Message):
-        if not await is_admin(self.bot, message.from_user.id):
-            await message.answer("❌ Admin access required")
-            return
-
         tournaments = await TournamentService.list_tournaments()
 
         await self._show_tournaments_list(message, tournaments)
-        await self._show_create_button(message)
+        if await is_admin(self.bot, message.from_user.id):
+            await self._show_create_button(message)
 
     async def _show_tournaments_list(self, message, tournaments):
         keyboard = []
@@ -103,6 +100,11 @@ class TournamentHandlers:
 
     async def edit_tournament(self, callback: types.CallbackQuery):
         print(f"🔹 edit_tournament() | User: {callback.from_user.id} | Data: {callback.data}")
+
+        if not await is_admin(self.bot, callback.from_user.id):
+            await callback.answer("❌ Admin access required")
+            return
+
         tournament_id = int(callback.data.split("_")[2])
         try:
             tournament = Tournament.get_by_id(tournament_id)
@@ -146,6 +148,11 @@ class TournamentHandlers:
 
     async def delete_tournament(self, callback: types.CallbackQuery):
         print(f"🔹 delete_tournament() | User: {callback.from_user.id} | Data: {callback.data}")
+
+        if not await is_admin(self.bot, callback.from_user.id):
+            await callback.answer("❌ Admin access required")
+            return
+
         tournament_id = int(callback.data.split("_")[2])
         try:
             tournament = Tournament.get_by_id(tournament_id)

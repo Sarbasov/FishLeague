@@ -8,6 +8,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemo
     InlineKeyboardButton
 from peewee import DatabaseError
 
+from bot.common.auth_utils import is_admin
 from bot.services.user_service import UserService
 from database import User, UserStatus
 from config import ADMIN_GROUP_ID
@@ -133,6 +134,11 @@ class UserHandlers:
 
     async def approve_user(self, callback: types.CallbackQuery):
         print(f"🔹 approve_user() | User: {callback.from_user.id} | Data: {callback.data}")
+
+        if not await is_admin(self.bot, callback.from_user.id):
+            await callback.answer("❌ Admin access required")
+            return
+
         user_id = int(callback.data.split("_")[2])
 
         User.update(status=UserStatus.ACTIVATED).where(User.id == user_id).execute()
@@ -144,6 +150,11 @@ class UserHandlers:
 
     async def deny_user(self, callback: types.CallbackQuery):
         print(f"🔹 deny_user() | User: {callback.from_user.id} | Data: {callback.data}")
+
+        if not await is_admin(self.bot, callback.from_user.id):
+            await callback.answer("❌ Admin access required")
+            return
+
         user_id = int(callback.data.split("_")[2])
 
         User.update(status=UserStatus.BLOCKED).where(User.id == user_id).execute()
@@ -156,6 +167,11 @@ class UserHandlers:
 
     async def delete_request(self, callback: types.CallbackQuery):
         print(f"🔹 delete_request() | User: {callback.from_user.id} | Data: {callback.data}")
+
+        if not await is_admin(self.bot, callback.from_user.id):
+            await callback.answer("❌ Admin access required")
+            return
+
         user_id = int(callback.data.split("_")[2])
 
         # full DB delete
