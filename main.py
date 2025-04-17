@@ -165,6 +165,7 @@ async def notify_admins(user_data: dict):
 
 @dp.callback_query(F.data.startswith("approve_"))
 async def approve_user(callback: types.CallbackQuery):
+    print(f"🔹 approve_user() | User: {callback.from_user.id} | Data: {callback.data}")
     user_id = int(callback.data.split("_")[1])
 
     User.update(status=UserStatus.ACTIVATED).where(User.id == user_id).execute()
@@ -176,6 +177,7 @@ async def approve_user(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("deny_"))
 async def deny_user(callback: types.CallbackQuery):
+    print(f"🔹 deny_user() | User: {callback.from_user.id} | Data: {callback.data}")
     user_id = int(callback.data.split("_")[1])
 
     User.update(status=UserStatus.BLOCKED).where(User.id == user_id).execute()
@@ -188,6 +190,7 @@ async def deny_user(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("delete_"))
 async def delete_request(callback: types.CallbackQuery):
+    print(f"🔹 delete_request() | User: {callback.from_user.id} | Data: {callback.data}")
     user_id = int(callback.data.split("_")[1])
 
     # full DB delete
@@ -207,19 +210,6 @@ async def handle_tournaments(message: types.Message):
 
     # Get all tournaments from the database
     tournaments = Tournament.select().order_by(Tournament.event_datetime.desc())
-
-    if not tournaments:
-        # If no tournaments, show create button
-        await message.answer(
-            "No tournaments found. Would you like to create one?",
-            reply_markup=ReplyKeyboardMarkup(keyboard=[[
-                KeyboardButton(
-                    text="Create Tournament",
-                    web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
-                )
-            ]])
-        )
-        return
 
     # Create inline keyboard with tournament list
     keyboard = []
@@ -245,19 +235,15 @@ async def handle_tournaments(message: types.Message):
             )
         ])
 
-    # Add create button at the end
-    keyboard.append([
-        InlineKeyboardButton(
-            text="➕ Create New Tournament",
-            web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
-        )
-    ])
-
     await message.answer(
         "🏆 Tournament List:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard)
+    )
+
+    await message.answer(
         reply_markup=ReplyKeyboardMarkup(keyboard=[[
             KeyboardButton(
-                text="Open Tournament Manager",
+                text="➕ Create New Tournament",
                 web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
             )
         ]])
@@ -266,6 +252,7 @@ async def handle_tournaments(message: types.Message):
 # Add handlers for the new callback queries
 @dp.callback_query(F.data.startswith("view_tournament_"))
 async def view_tournament(callback: types.CallbackQuery):
+    print(f"🔹 view_tournament() | User: {callback.from_user.id} | Data: {callback.data}")
     tournament_id = int(callback.data.split("_")[2])
     try:
         tournament = Tournament.get_by_id(tournament_id)
@@ -291,6 +278,7 @@ async def view_tournament(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("edit_tournament_"))
 async def edit_tournament(callback: types.CallbackQuery):
+    print(f"🔹 edit_tournament() | User: {callback.from_user.id} | Data: {callback.data}")
     tournament_id = int(callback.data.split("_")[2])
     try:
         tournament = Tournament.get_by_id(tournament_id)
@@ -334,6 +322,7 @@ async def edit_tournament(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("delete_tournament_"))
 async def delete_tournament(callback: types.CallbackQuery):
+    print(f"🔹 delete_tournament() | User: {callback.from_user.id} | Data: {callback.data}")
     tournament_id = int(callback.data.split("_")[2])
     try:
         tournament = Tournament.get_by_id(tournament_id)
@@ -350,13 +339,14 @@ async def delete_tournament(callback: types.CallbackQuery):
                 ]
             )
         )
-        await callback.answer("Tournament deleted")
+        await callback.answer("✅ Tournament deleted")
     except DoesNotExist:
         await callback.answer("Tournament not found", show_alert=True)
 
 
 @dp.callback_query(F.data == "refresh_tournaments")
 async def refresh_tournaments(callback: types.CallbackQuery):
+    print(f"🔹 refresh_tournaments() | User: {callback.from_user.id} | Data: {callback.data}")
     # Re-run the handle_tournaments function
     await handle_tournaments(callback.message)
     await callback.answer()
