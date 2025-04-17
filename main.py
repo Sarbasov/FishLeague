@@ -5,8 +5,6 @@ from aiogram.enums import ParseMode
 
 from bot.core.bot_core import BotCore
 from config import BOT_TOKEN
-from bot.handlers.user_handlers import UserHandlers
-from bot.handlers.tournament_handlers import TournamentHandlers
 from database import initialize_db
 
 async def main():
