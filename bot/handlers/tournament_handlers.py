@@ -88,7 +88,6 @@ class TournamentHandlers:
                 f"📍 <b>Location:</b> {tournament.location_name}\n"
                 f"👥 <b>Teams:</b> {tournament.number_of_teams}\n"
                 f"⚽ <b>Players in team:</b> {tournament.players_per_game}\n"
-                f"🏟️ <b>Sectors:</b> {tournament.number_of_sectors}\n"
                 f"🔄 <b>Round Robin Rounds:</b> {tournament.round_robin_rounds}\n"
                 f"🏁 <b>Playoff Starts:</b> {tournament.playoff_starts_at}\n"
                 f"📝 <b>Comment:</b> {tournament.comment or 'None'}"
@@ -117,7 +116,6 @@ class TournamentHandlers:
                 "event_datetime": tournament.event_datetime.isoformat(),
                 "location_name": tournament.location_name,
                 "number_of_teams": tournament.number_of_teams,
-                "number_of_sectors": tournament.number_of_sectors,
                 "players_per_game": tournament.players_per_game,
                 "players_registered": tournament.players_registered,
                 "round_robin_rounds": tournament.round_robin_rounds,
@@ -197,7 +195,6 @@ class TournamentHandlers:
                     event_datetime=datetime.fromisoformat(data['data']['event_datetime']),
                     location_name=data['data']['location_name'],
                     number_of_teams=data['data']['number_of_teams'],
-                    number_of_sectors=data['data']['number_of_sectors'],
                     players_per_game=data['data']['players_per_game'],
                     players_registered=data['data']['players_registered'],
                     round_robin_rounds=data['data']['round_robin_rounds'],
@@ -217,7 +214,6 @@ class TournamentHandlers:
                     event_datetime=datetime.fromisoformat(data['data']['event_datetime']),
                     location_name=data['data']['location_name'],
                     number_of_teams=data['data']['number_of_teams'],
-                    number_of_sectors=data['data']['number_of_sectors'],
                     players_per_game=data['data']['players_per_game'],
                     players_registered=data['data']['players_registered'],
                     round_robin_rounds=data['data']['round_robin_rounds'],
@@ -242,7 +238,6 @@ class TournamentHandlers:
                     "event_datetime": event_datetime,
                     "location_name": tournament.location_name,
                     "number_of_teams": tournament.number_of_teams,
-                    "number_of_sectors": tournament.number_of_sectors,
                     "players_per_game": tournament.players_per_game,
                     "players_registered": tournament.players_registered,
                     "round_robin_rounds": tournament.round_robin_rounds,

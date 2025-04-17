@@ -62,7 +62,6 @@ class Tournament(BaseModel):
 
     # Team structure
     number_of_teams = IntegerField()
-    number_of_sectors = IntegerField()  # Competition areas
 
     # Player info
     players_registered = IntegerField()  # Total registered players
@@ -114,10 +113,6 @@ class Tournament(BaseModel):
     # Metadata
     created_at = DateTimeField(default=datetime.datetime.now)
     created_by = ForeignKeyField(User, backref='tournaments')
-
-    @classmethod
-    def get_default_sectors(cls, team_count: int) -> int:
-        return max(1, team_count // 2)
 
     @classmethod
     def get_default_rounds(cls) -> int:
