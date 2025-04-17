@@ -37,7 +37,7 @@ class TournamentHandlers:
         self.dp.message(F.web_app_data)(self.handle_webapp_data)
 
     async def handle_tournaments(self, message: types.Message):
-        if not await is_admin(message.from_user.id):
+        if not await is_admin(self.bot, message.from_user.id):
             await message.answer("❌ Admin access required")
             return
 
@@ -179,7 +179,7 @@ class TournamentHandlers:
             data = json.loads(message.web_app_data.data)
             user_id = message.from_user.id
 
-            if not await is_admin(user_id):
+            if not await is_admin(self.bot, user_id):
                 return await message.answer("❌ Admin access required")
 
             if data['action'] == 'create_tournament':
