@@ -12,7 +12,7 @@ from urllib.parse import quote
 import json
 
 from database import Tournament, TournamentStatus
-
+from bot.common.auth_utils import is_admin
 
 class TournamentHandlers:
     def __init__(self, dp: Dispatcher, bot: Bot):
@@ -37,7 +37,7 @@ class TournamentHandlers:
         self.dp.message(F.web_app_data)(self.handle_webapp_data)
 
     async def handle_tournaments(self, message: types.Message):
-        if not await self.is_admin(message.from_user.id):
+        if not await is_admin(message.from_user.id):
             await message.answer("❌ Admin access required")
             return
 
@@ -179,7 +179,7 @@ class TournamentHandlers:
             data = json.loads(message.web_app_data.data)
             user_id = message.from_user.id
 
-            if not await self.is_admin(user_id):
+            if not await is_admin(user_id):
                 return await message.answer("❌ Admin access required")
 
             if data['action'] == 'create_tournament':
@@ -254,10 +254,3 @@ class TournamentHandlers:
             await message.answer(
                 text=f"⚠️ Error processing your request: {str(e)}"
             )
-
-    async def is_admin(self, user_id: int) -> bool:
-        try:
-            member = await self.bot.get_chat_member(ADMIN_GROUP_ID, user_id)
-            return member is not None
-        except:
-            return False
