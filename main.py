@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
+from bot.core.bot_core import BotCore
 from config import BOT_TOKEN
 from bot.handlers.user_handlers import UserHandlers
 from bot.handlers.tournament_handlers import TournamentHandlers
@@ -19,8 +20,8 @@ async def main():
     initialize_db()
 
     # Register handlers
-    UserHandlers(dp, bot)
-    TournamentHandlers(dp, bot)
+    bot_core = BotCore(dp, bot)
+    bot_core.register_handlers()
 
     await dp.start_polling(bot)
 

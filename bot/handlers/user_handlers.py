@@ -9,6 +9,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemo
 from peewee import DatabaseError
 
 from bot.common.auth_utils import is_admin
+from bot.handlers.tournament_handlers import TournamentHandlers
 from bot.services.user_service import UserService
 from database import User, UserStatus
 from config import ADMIN_GROUP_ID
@@ -19,9 +20,10 @@ class Registration(StatesGroup):
     waiting_for_comment = State()
 
 class UserHandlers:
-    def __init__(self, dp: Dispatcher, bot: Bot):
+    def __init__(self, dp: Dispatcher, bot: Bot, tournament_handlers: TournamentHandlers):
         self._dp = dp
         self._bot = bot
+        self._tournament_handlers = tournament_handlers
         self.register_handlers()
 
     @property
@@ -31,6 +33,10 @@ class UserHandlers:
     @property
     def bot(self) -> Bot:
         return self._bot
+
+    @property
+    def tournament_handlers(self) -> TournamentHandlers:
+        return self._tournament_handlers
 
     def register_handlers(self):
         self.dp.message(Command("start"))(self.start)
@@ -45,17 +51,19 @@ class UserHandlers:
         try:
             if await is_admin(self.bot, message.from_user.id):
                 await message.answer("✅ Welcome back! You are an admin.")
+                await self.tournament_handlers.handle_tournaments(message) # show list of tournaments
             else:
                 user = await UserService.get_user(message.from_user.id)
                 if user:
                     if user.status == UserStatus.ACTIVATED:
                         await message.answer("✅ Welcome back! You have full access.")
+                        await self.tournament_handlers.handle_tournaments(message) # show list of tournaments
                     elif user.status == UserStatus.BLOCKED:
                         await message.answer("⛔ Your account is blocked. Contact administrator.")
                     else:
                         await message.answer("⌛ Your registration request is pending approval.")
                 else:
-                    await self._init_registration(message, state)
+                    await self._init_registration(message, state) # user register form
         except Exception as e:
             await message.answer("⚠️ An error occurred. Please try again.")
             print(f"Error in start handler: {e}")
