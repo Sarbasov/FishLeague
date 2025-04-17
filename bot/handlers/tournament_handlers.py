@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import datetime
 
 from aiogram import F, types, Dispatcher, Bot
@@ -37,13 +38,14 @@ class TournamentHandlers:
         self.dp.message(F.web_app_data)(self.handle_webapp_data)
 
     async def handle_tournaments(self, message: types.Message):
+        await self.show_tournaments_list(message, message.chat.id)
+
+    async def show_tournaments_list(self, message: types.Message | None = None, chat_id: int | None = None):
+        if message is None and chat_id is None:
+            raise ValueError("Either message or chat_id must be provided")
+
         tournaments = await TournamentService.list_tournaments()
 
-        await self._show_tournaments_list(message, tournaments)
-        if await is_admin(self.bot, message.from_user.id):
-            await self._show_create_button(message)
-
-    async def _show_tournaments_list(self, message, tournaments):
         keyboard = []
         for tournament in tournaments:
             event_date = tournament.event_datetime.strftime("%Y-%m-%d %H:%M")
@@ -59,21 +61,40 @@ class TournamentHandlers:
                     InlineKeyboardButton(text="🗑️ Delete", callback_data=f"delete_tournament_{tournament.id}")
                 ])
 
-        await message.answer(
-            "🏆 Tournament List:",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard)
-        )
+        message_text = "🏆 Tournament List:"
+        reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+        if message is not None:
+            await message.answer(
+                message_text,
+                reply_markup=reply_markup
+            )
+        else:
+            await self.bot.send_message(chat_id,
+                message_text,
+                reply_markup=reply_markup
+            )
 
-    async def _show_create_button(self, message):
-        await message.answer(
-            "Press ➕ Create New Tournament to create a new tournament",
-            reply_markup=ReplyKeyboardMarkup(keyboard=[[
-                KeyboardButton(
-                    text="➕ Create New Tournament",
-                    web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
-                )
-            ]])
-        )
+        if await is_admin(self.bot, message.from_user.id):
+            await self._show_create_button(message, chat_id)
+
+    async def _show_create_button(self, message: types.Message, chat_id: int):
+        message_text = "Press ➕ Create New Tournament to create a new tournament"
+        reply_markup = ReplyKeyboardMarkup(keyboard=[[
+                    KeyboardButton(
+                        text="➕ Create New Tournament",
+                        web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
+                    )
+                ]])
+        if message is not None:
+            await message.answer(
+                message_text,
+                reply_markup=reply_markup
+            )
+        else:
+            await self.bot.send_message(chat_id,
+                message_text,
+                reply_markup=reply_markup
+            )
 
     async def view_tournament(self, callback: types.CallbackQuery):
         print(f"🔹 view_tournament() | User: {callback.from_user.id} | Data: {callback.data}")

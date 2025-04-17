@@ -147,6 +147,7 @@ class UserHandlers:
 
         User.update(status=UserStatus.ACTIVATED).where(User.id == user_id).execute()
         await self.bot.send_message(user_id, "🎉 Your registration was approved!")
+        await self.tournament_handlers.show_tournaments_list(message=None, chat_id=user_id)
 
         await callback.answer(
             f"✅ Approved by {callback.from_user.full_name}"
