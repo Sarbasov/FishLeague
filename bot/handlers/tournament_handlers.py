@@ -89,7 +89,7 @@ class TournamentHandlers:
                 f"📅 <b>Date:</b> {event_date}\n"
                 f"📍 <b>Location:</b> {tournament.location_name}\n"
                 f"👥 <b>Teams:</b> {tournament.number_of_teams}\n"
-                f"⚽ <b>Players per game:</b> {tournament.players_per_game}\n"
+                f"⚽ <b>Players in team:</b> {tournament.players_per_game}\n"
                 f"🏟️ <b>Sectors:</b> {tournament.number_of_sectors}\n"
                 f"🔄 <b>Round Robin Rounds:</b> {tournament.round_robin_rounds}\n"
                 f"🏁 <b>Playoff Starts:</b> {tournament.playoff_starts_at}\n"
