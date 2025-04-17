@@ -45,9 +45,6 @@ class UserHandlers:
         try:
             user = await UserService.get_user(message.from_user.id)
             if user:
-                #await UserService.update_user_chat_info(message.from_user.id, message.chat.id,
-                #                                        message.from_user.username)
-
                 if user.status == UserStatus.ACTIVATED:
                     await message.answer("✅ Welcome back! You have full access.")
                 elif user.status == UserStatus.BLOCKED:
