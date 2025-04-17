@@ -242,10 +242,6 @@ async def handle_tournaments(message: types.Message):
             InlineKeyboardButton(
                 text="🗑️ Delete",
                 callback_data=f"delete_tournament_{tournament.id}"
-            ),
-            InlineKeyboardButton(
-                text="🔍 Details",
-                callback_data=f"details_tournament_{tournament.id}"
             )
         ])
 
