@@ -258,8 +258,6 @@ class TeamHandlers:
                 f"🎉 Your team {team.name} has been approved for tournament {team.tournament.event_name}!"
             )
 
-        # Delete admin notification message
-        await callback.message.delete()
         await callback.answer("Team approved!")
 
     async def deny_team(self, callback: types.CallbackQuery):
