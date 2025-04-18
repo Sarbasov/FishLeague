@@ -69,7 +69,7 @@ class TournamentHandlers:
                 reply_markup=reply_markup
             )
 
-        if await is_admin(self.bot, message.from_user.id):
+        if await is_admin(self.bot, chat_id):
             await self._show_create_button(message, chat_id)
 
     async def _show_create_button(self, message: types.Message, chat_id: int):
