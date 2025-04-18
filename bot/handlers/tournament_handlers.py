@@ -109,7 +109,7 @@ class TournamentHandlers:
                 f"📝 <b>Comment:</b> {tournament.comment or 'None'}"
             )
 
-            keyboard = [[InlineKeyboardButton(text="Подать заявку на участие", callback_data=f"submit_team_{tournament.id}")]]
+            keyboard = [[InlineKeyboardButton(text="Подать заявку на участие", callback_data=f"compose_team_{tournament.id}")]]
 
             if await is_admin(self.bot, callback.from_user.id):
                 keyboard.append([

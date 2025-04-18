@@ -30,9 +30,9 @@ class TeamHandlers:
         return self._bot
 
     def register_handlers(self):
-        self.dp.callback_query(F.data.startswith("submit_team_"))(self.submit_team)
+        self.dp.callback_query(F.data.startswith("compose_team_"))(self.compose_team)
 
-    async def submit_team(self, callback: types.CallbackQuery):
+    async def compose_team(self, callback: types.CallbackQuery):
         print(f"🔹 submit_team() | User: {callback.from_user.id} | Data: {callback.data}")
         tournament_id = int(callback.data.split("_")[2])
         try:
