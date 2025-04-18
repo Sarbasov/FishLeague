@@ -128,9 +128,8 @@ class Tournament(BaseModel):
 
 
 class TeamStatus:
-    DRAFT = 0
-    REQUESTED = 1
-    ENROLLED = 2
+    REQUESTED = 0
+    ENROLLED = 1
 
 class Team(BaseModel):
     id = AutoField()  # Auto-incrementing primary key
@@ -145,8 +144,8 @@ class Team(BaseModel):
     # Team captain
     captain = ForeignKeyField(User, backref='captain_of_teams')
 
-    # Status: 0=draft, 1=requested, 2=enrolled
-    status = IntegerField(default=TeamStatus.DRAFT)
+    # Status: 0=requested, 1=enrolled
+    status = IntegerField(default=TeamStatus.REQUESTED)
 
     # Auto-set when created
     create_date = DateTimeField(default=datetime.datetime.now)

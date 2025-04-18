@@ -107,7 +107,6 @@ class TournamentHandlers:
                 text += "<b>Teams:</b>\n"
                 for i, team in enumerate(teams, 1):
                     status = {
-                        TeamStatus.DRAFT: "Draft",
                         TeamStatus.REQUESTED: "Pending Approval",
                         TeamStatus.ENROLLED: "Enrolled"
                     }.get(team.status, "Unknown")

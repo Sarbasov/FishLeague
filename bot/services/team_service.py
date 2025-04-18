@@ -15,7 +15,7 @@ class TeamService:
             name=team_name,
             tournament=tournament,
             captain=user,
-            status=TeamStatus.DRAFT,
+            status=TeamStatus.REQUESTED,
             create_date=datetime.now()
         )
 
