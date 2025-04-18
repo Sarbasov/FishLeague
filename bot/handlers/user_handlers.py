@@ -79,7 +79,7 @@ class UserHandlers:
     async def process_phone(self, message: Message, state: FSMContext):
         await state.update_data(phone_number=message.contact.phone_number)
 
-        await message.answer("👤 Please enter your full name:")
+        await message.answer("👤 Please enter your full name (for example, Петров Иван):")
         await state.set_state(Registration.waiting_for_full_name)
 
     async def process_full_name(self, message: Message, state: FSMContext):
