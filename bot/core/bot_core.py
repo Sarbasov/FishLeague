@@ -1,4 +1,6 @@
 from aiogram import Dispatcher, Bot
+
+from bot.handlers.team_handlers import TeamHandlers
 from bot.handlers.user_handlers import UserHandlers
 from bot.handlers.tournament_handlers import TournamentHandlers
 
@@ -8,6 +10,7 @@ class BotCore:
         self.bot = bot
         self.tournament_handlers = TournamentHandlers(dp, bot)
         self.user_handlers = UserHandlers(dp, bot, self.tournament_handlers)
+        self.team_handlers = TeamHandlers(dp, bot)
 
     def register_handlers(self):
         self.tournament_handlers.register_handlers()

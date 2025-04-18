@@ -55,11 +55,6 @@ class TournamentHandlers:
                     callback_data=f"view_tournament_{tournament.id}"
                 )
             ])
-            if await is_admin(self.bot, message.from_user.id):
-                keyboard.append([
-                    InlineKeyboardButton(text="✏️ Edit", callback_data=f"edit_tournament_{tournament.id}"),
-                    InlineKeyboardButton(text="🗑️ Delete", callback_data=f"delete_tournament_{tournament.id}")
-                ])
 
         message_text = "🏆 Tournament List:"
         reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -114,7 +109,15 @@ class TournamentHandlers:
                 f"📝 <b>Comment:</b> {tournament.comment or 'None'}"
             )
 
-            await callback.message.answer(text)
+            keyboard = [[InlineKeyboardButton(text="Подать заявку на участие", callback_data=f"submit_team_{tournament.id}")]]
+
+            if await is_admin(self.bot, callback.from_user.id):
+                keyboard.append([
+                    InlineKeyboardButton(text="✏️ Edit", callback_data=f"edit_tournament_{tournament.id}"),
+                    InlineKeyboardButton(text="🗑️ Delete", callback_data=f"delete_tournament_{tournament.id}")
+                ])
+
+            await callback.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard))
             await callback.answer()
         except DoesNotExist:
             await callback.answer("Tournament not found", show_alert=True)
