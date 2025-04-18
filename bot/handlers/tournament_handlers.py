@@ -38,12 +38,9 @@ class TournamentHandlers:
         self.dp.message(F.web_app_data)(self.handle_webapp_data)
 
     async def handle_tournaments(self, message: types.Message):
-        await self.show_tournaments_list(message, message.chat.id)
+        await self.show_tournaments_list(message.from_user.id)
 
-    async def show_tournaments_list(self, message: types.Message | None = None, chat_id: int | None = None):
-        if message is None and chat_id is None:
-            raise ValueError("Either message or chat_id must be provided")
-
+    async def show_tournaments_list(self, user_id: int):
         tournaments = await TournamentService.list_tournaments()
 
         keyboard = []
@@ -58,21 +55,15 @@ class TournamentHandlers:
 
         message_text = "🏆 Tournament List:"
         reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
-        if message is not None:
-            await message.answer(
-                message_text,
-                reply_markup=reply_markup
-            )
-        else:
-            await self.bot.send_message(chat_id,
-                message_text,
-                reply_markup=reply_markup
-            )
+        await self.bot.send_message(user_id,
+            message_text,
+            reply_markup=reply_markup
+        )
 
-        if await is_admin(self.bot, chat_id):
-            await self._show_create_button(message, chat_id)
+        if await is_admin(self.bot, user_id):
+            await self._show_create_button(user_id)
 
-    async def _show_create_button(self, message: types.Message, chat_id: int):
+    async def _show_create_button(self, user_id: int):
         message_text = "Press ➕ Create New Tournament to create a new tournament"
         reply_markup = ReplyKeyboardMarkup(keyboard=[[
                     KeyboardButton(
@@ -80,16 +71,10 @@ class TournamentHandlers:
                         web_app=WebAppInfo(url=TOURNAMENT_WEBAPP_URL)
                     )
                 ]])
-        if message is not None:
-            await message.answer(
-                message_text,
-                reply_markup=reply_markup
-            )
-        else:
-            await self.bot.send_message(chat_id,
-                message_text,
-                reply_markup=reply_markup
-            )
+        await self.bot.send_message(user_id,
+            message_text,
+            reply_markup=reply_markup
+        )
 
     async def view_tournament(self, callback: types.CallbackQuery):
         print(f"🔹 view_tournament() | User: {callback.from_user.id} | Data: {callback.data}")
