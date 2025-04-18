@@ -8,6 +8,7 @@ from config import BOT_TOKEN
 from database import initialize_db
 
 async def main():
+    print("🔹 main()")
     bot = Bot(
         token=BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)

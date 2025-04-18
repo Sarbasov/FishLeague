@@ -141,7 +141,7 @@ class UserHandlers:
         await self.bot.send_message(user_id, "🎉 Your registration was approved!")
         await self.tournament_handlers.show_tournaments_list(message=None, chat_id=user_id)
 
-        await callback.answer(
+        await callback.message.answer(
             f"✅ Approved by {callback.from_user.full_name}"
         )
 
@@ -158,7 +158,7 @@ class UserHandlers:
         await self.bot.send_message(user_id, "❌ Your registration was denied.")
 
         # Edit original message to show denial
-        await callback.answer(
+        await callback.message.answer(
             f"❌ Denied by {callback.from_user.full_name}"
         )
 
@@ -177,7 +177,7 @@ class UserHandlers:
         # Delete the admin notification message
         await callback.message.delete()
 
-        await callback.answer("Request deleted by {callback.from_user.full_name}")
+        await callback.message.answer("Request deleted by {callback.from_user.full_name}")
 
     async def notify_admins(self, user_data: dict):
         markup = InlineKeyboardMarkup(inline_keyboard=[

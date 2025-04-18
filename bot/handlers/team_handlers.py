@@ -9,7 +9,7 @@ from aiogram.types import (
 )
 from peewee import DoesNotExist
 from config import ADMIN_GROUP_ID
-from database import Team, TeamMember, Tournament, User
+from database import Team, TeamMember, Tournament, User, TeamStatus
 from bot.services.team_service import TeamService
 
 
@@ -63,7 +63,7 @@ class TeamHandlers:
                 team.status = TeamStatus.REQUESTED
                 team.save()
                 await self.notify_admins(team)
-                await callback.answer("✅ Your participation request submitted!")
+                await callback.message.answer("✅ Your participation request submitted!")
             else:
                 # Team tournament - start team creation flow
                 await state.update_data(tournament_id=tournament_id)
