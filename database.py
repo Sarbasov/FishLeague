@@ -141,16 +141,29 @@ class Team(BaseModel):
     # Tournament reference (on_delete='RESTRICT' prevents tournament deletion if teams exist)
     tournament = ForeignKeyField(Tournament, backref='teams', on_delete='RESTRICT')
 
+    # Team captain
+    captain = ForeignKeyField(User, backref='captain_of_teams')
+
     # Status: 0=requested, 1=enrolled
     status = IntegerField(default=TeamStatus.REQUESTED)
 
     # Auto-set when created
     create_date = DateTimeField(default=datetime.datetime.now)
 
+
+class TeamMember(BaseModel):
+    team = ForeignKeyField(Team, backref='members')
+    user = ForeignKeyField(User, backref='teams')
+    join_date = DateTimeField(default=datetime.datetime.now)
+
+    class Meta:
+        # Composite primary key (team + user) to prevent duplicate memberships
+        primary_key = CompositeKey('team', 'user')
+
 # Connect and create tables
 def initialize_db():
     db.connect()
-    db.create_tables([User, Tournament, Team], safe=True)
+    db.create_tables([User, Tournament, Team, TeamMember], safe=True)
     db.close()
 
 if __name__ == '__main__':
