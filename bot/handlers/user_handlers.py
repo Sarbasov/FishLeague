@@ -79,15 +79,7 @@ class UserHandlers:
     async def process_phone(self, message: Message, state: FSMContext):
         await state.update_data(phone_number=message.contact.phone_number)
 
-        await message.answer(
-            f"👤 Please enter your full name:",
-            reply_markup=ReplyKeyboardMarkup(
-                keyboard=[
-                    [KeyboardButton(text=f"✅ Use {message.from_user.full_name}")]
-                ],
-                resize_keyboard=True
-            )
-        )
+        await message.answer("👤 Please enter your full name:")
         await state.set_state(Registration.waiting_for_full_name)
 
     async def process_full_name(self, message: Message, state: FSMContext):
