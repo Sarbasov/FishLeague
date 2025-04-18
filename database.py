@@ -126,10 +126,31 @@ class Tournament(BaseModel):
     def get_default_players(cls, players_per_game: int) -> int:
         return players_per_game + 1
 
+
+class TeamStatus:
+    REQUESTED = 0
+    ENROLLED = 1
+
+class Team(BaseModel):
+    id = AutoField()  # Auto-incrementing primary key
+
+    # Team information
+    name = CharField(max_length=100)
+    is_paid = BooleanField(default=False)
+
+    # Tournament reference (on_delete='RESTRICT' prevents tournament deletion if teams exist)
+    tournament = ForeignKeyField(Tournament, backref='teams', on_delete='RESTRICT')
+
+    # Status: 0=requested, 1=enrolled
+    status = IntegerField(default=TeamStatus.REQUESTED)
+
+    # Auto-set when created
+    create_date = DateTimeField(default=datetime.datetime.now)
+
 # Connect and create tables
 def initialize_db():
     db.connect()
-    db.create_tables([User, Tournament], safe=True)
+    db.create_tables([User, Tournament, Team], safe=True)
     db.close()
 
 if __name__ == '__main__':
