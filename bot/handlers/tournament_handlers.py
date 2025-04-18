@@ -7,12 +7,13 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 from aiogram.types import WebAppInfo
 from peewee import DoesNotExist
 
+from bot.services.team_service import TeamService
 from bot.services.tournament_service import TournamentService
 from config import TOURNAMENT_WEBAPP_URL
 from urllib.parse import quote
 import json
 
-from database import Tournament, TournamentStatus
+from database import Tournament, TournamentStatus, TeamStatus, TeamMember, Team
 from bot.common.auth_utils import is_admin
 
 class TournamentHandlers:
@@ -35,6 +36,8 @@ class TournamentHandlers:
         self.dp.callback_query(F.data.startswith("edit_tournament_"))(self.edit_tournament)
         self.dp.callback_query(F.data.startswith("delete_tournament_"))(self.delete_tournament)
         self.dp.callback_query(F.data == "refresh_tournaments")(self.refresh_tournaments)
+        self.dp.callback_query(F.data.startswith("admin_delete_team_"))(self.admin_delete_team)
+        self.dp.callback_query(F.data.startswith("admin_approve_team_"))(self.admin_approve_team)
         self.dp.message(F.web_app_data)(self.handle_webapp_data)
 
     async def handle_tournaments(self, message: types.Message):
@@ -82,7 +85,9 @@ class TournamentHandlers:
         try:
             tournament = Tournament.get_by_id(tournament_id)
             event_date = tournament.event_datetime.strftime("%Y-%m-%d %H:%M")
+            is_admin_user = await is_admin(self.bot, callback.from_user.id)
 
+            # Basic tournament info
             text = (
                 f"🏆 <b>{tournament.event_name}</b>\n"
                 f"📅 <b>Date:</b> {event_date}\n"
@@ -91,12 +96,64 @@ class TournamentHandlers:
                 f"⚽ <b>Players in team:</b> {tournament.players_per_game}\n"
                 f"🔄 <b>Round Robin Rounds:</b> {tournament.round_robin_rounds}\n"
                 f"🏁 <b>Playoff Starts:</b> {tournament.playoff_starts_at}\n"
-                f"📝 <b>Comment:</b> {tournament.comment or 'None'}"
+                f"📝 <b>Comment:</b> {tournament.comment or 'None'}\n\n"
             )
 
-            keyboard = [[InlineKeyboardButton(text="Подать заявку на участие", callback_data=f"compose_team_{tournament.id}")]]
+            # Get all teams for this tournament
+            teams = tournament.teams.order_by(Team.create_date)
 
-            if await is_admin(self.bot, callback.from_user.id):
+            # Add teams info if admin
+            if is_admin_user and teams.count() > 0:
+                text += "<b>Teams:</b>\n"
+                for i, team in enumerate(teams, 1):
+                    status = {
+                        TeamStatus.DRAFT: "Draft",
+                        TeamStatus.REQUESTED: "Pending Approval",
+                        TeamStatus.ENROLLED: "Enrolled"
+                    }.get(team.status, "Unknown")
+
+                    text += (
+                        f"\n{i}. <b>{team.name}</b> ({status})\n"
+                        f"👤 Captain: {team.captain.full_name}\n"
+                        f"👥 Members ({TeamMember.select().where(TeamMember.team == team).count()}):\n"
+                    )
+
+                    # List all members
+                    for member in team.members:
+                        captain_flag = " (Captain)" if member.user == team.captain else ""
+                        text += f"   • {member.user.full_name}{captain_flag}\n"
+
+            keyboard = []
+
+            # Add participation button for regular users
+            if not is_admin_user:
+                keyboard.append([InlineKeyboardButton(
+                    text="Подать заявку на участие",
+                    callback_data=f"compose_team_{tournament.id}"
+                )])
+
+            # Add admin controls
+            if is_admin_user:
+                # Add team management buttons for each team
+                for i, team in enumerate(teams, 1):
+                    team_buttons = []
+
+                    # Delete button for all teams
+                    team_buttons.append(InlineKeyboardButton(
+                        text=f"🗑️ Delete Team {i}",
+                        callback_data=f"admin_delete_team_{team.id}"
+                    ))
+
+                    # Approve button for requested teams
+                    if team.status == TeamStatus.REQUESTED:
+                        team_buttons.append(InlineKeyboardButton(
+                            text=f"✅ Approve Team {i}",
+                            callback_data=f"admin_approve_team_{team.id}"
+                        ))
+
+                    keyboard.append(team_buttons)
+
+                # Add tournament management buttons
                 keyboard.append([
                     InlineKeyboardButton(text="✏️ Edit", callback_data=f"edit_tournament_{tournament.id}"),
                     InlineKeyboardButton(text="🗑️ Delete", callback_data=f"delete_tournament_{tournament.id}")
@@ -266,3 +323,47 @@ class TournamentHandlers:
             await message.answer(
                 text=f"⚠️ Error processing your request: {str(e)}"
             )
+
+    async def admin_delete_team(self, callback: types.CallbackQuery):
+        if not await is_admin(self.bot, callback.from_user.id):
+            await callback.answer("❌ Admin access required")
+            return
+
+        team_id = int(callback.data.split("_")[3])
+        try:
+            team = Team.get_by_id(team_id)
+            tournament_id = team.tournament.id
+            team.delete_instance()
+            await callback.answer("✅ Team deleted")
+            # Refresh the tournament view
+            await self.view_tournament(types.CallbackQuery(
+                data=f"view_tournament_{tournament_id}",
+                message=callback.message,
+                from_user=callback.from_user
+            ))
+        except DoesNotExist:
+            await callback.answer("Team not found", show_alert=True)
+
+    async def admin_approve_team(self, callback: types.CallbackQuery):
+        if not await is_admin(self.bot, callback.from_user.id):
+            await callback.answer("❌ Admin access required")
+            return
+
+        team_id = int(callback.data.split("_")[3])
+        try:
+            team = Team.get_by_id(team_id)
+            success, error = await TeamService.approve_team(team.id)
+            if not success:
+                await callback.answer(f"❌ {error}", show_alert=True)
+                return
+
+            tournament_id = team.tournament.id
+            await callback.answer("✅ Team approved")
+            # Refresh the tournament view
+            await self.view_tournament(types.CallbackQuery(
+                data=f"view_tournament_{tournament_id}",
+                message=callback.message,
+                from_user=callback.from_user
+            ))
+        except DoesNotExist:
+            await callback.answer("Team not found", show_alert=True)
